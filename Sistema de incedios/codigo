@@ -1,0 +1,126 @@
+#include <IRremote.hpp>
+#include <LiquidCrystal.h>
+#include <Servo.h>
+
+#define CONTROL_REMOTO 11
+#define LED_VERDE 8
+#define SENSOR_TEMPERATURA A0
+#define SERVO 9
+#define TEMPERATURA_INCENDIO 60
+
+LiquidCrystal lcd(7, 6, 5, 4, 3, 2);
+bool SistemaIncendio = false;
+Servo servoIncendio;
+
+void setup() {
+  Serial.begin(9600);
+  IrReceiver.begin(CONTROL_REMOTO, ENABLE_LED_FEEDBACK);
+  pinMode(LED_VERDE, OUTPUT);
+  lcd.begin(16, 2);
+  lcd.noBlink();
+  servoIncendio.attach(9);
+  pinMode(A2, OUTPUT);
+}
+
+void loop() {
+  float temperatura_actual = obtenerTemperatura();
+  String estacion = asignarEstacion(temperatura_actual);
+  bool incendioDetectado = temperatura_actual > TEMPERATURA_INCENDIO;
+
+  mostrarLCD(temperatura_actual, estacion, incendioDetectado);
+
+  if (IrReceiver.decode()) {
+    switch (IrReceiver.decodedIRData.command) {
+      case 0x10: // BOTON 1
+        digitalWrite(LED_VERDE, HIGH);
+        activarSistemaIncendio();
+        break;
+      case 0x11: // BOTON 2
+        digitalWrite(LED_VERDE, LOW);
+        desactivarSistemaIncendio();
+        break;
+    }
+    delay(65);
+    IrReceiver.resume();
+  }
+
+  if (incendioDetectado && SistemaIncendio) {
+    sistemaDeIncendio(temperatura_actual);
+  }
+}
+
+void activarSistemaIncendio() {
+  digitalWrite(A2, HIGH);
+  SistemaIncendio = true;
+}
+
+void desactivarSistemaIncendio() {
+  digitalWrite(A2, LOW);
+  servoIncendio.write(90);
+  SistemaIncendio = false;
+}
+
+void sistemaDeIncendio(float temperatura) {
+  if (SistemaIncendio && temperatura > TEMPERATURA_INCENDIO) {
+    for (int i = 0; i < 5; i++) {
+      digitalWrite(A2, HIGH); 
+      delay(200);
+      digitalWrite(A2, LOW);
+      delay(200);
+    }
+    for (int angle = 0; angle <= 180; angle++) {
+      servoIncendio.write(angle);
+      delay(15);
+    }
+    for (int angle = 180; angle >= 0; angle--) {
+      servoIncendio.write(angle);
+      delay(15);
+    }
+  } else {
+    servoIncendio.write(90);
+    digitalWrite(A2, LOW); // Apagar la luz en A2
+  }
+}
+
+float obtenerTemperatura() {
+  int valorSensor = analogRead(SENSOR_TEMPERATURA);
+  float voltaje = valorSensor * (5.0 / 1023.0);
+  float temperaturaCelsius = (voltaje - 0.5) * 100.0;
+  return temperaturaCelsius;
+}
+
+String asignarEstacion(float temperatura) {
+  if (temperatura >= 25) {
+    return "Verano";
+  } else if (temperatura >= 15 && temperatura < 25) {
+    return "Primavera";
+  } else if (temperatura >= 5 && temperatura < 15) {
+    return "Otoño";
+  } else {
+    return "Invierno";
+  }
+}
+
+void mostrarLCD(float temperatura, String estacion, bool incendioDetectado) {
+  static float prevTemp = 0;
+  static String prevSeason = "";
+  static bool prevFireDetected = false;
+
+  if (prevTemp != temperatura || prevSeason != estacion || prevFireDetected != incendioDetectado) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Temp: " + String(temperatura) + " C");
+
+    lcd.setCursor(0, 1);
+    if (SistemaIncendio && temperatura > TEMPERATURA_INCENDIO) {
+      lcd.print("INCENDIO!!");
+    } else {
+      lcd.print("Estacion: " + estacion);
+    }
+    
+    prevTemp = temperatura;
+    prevSeason = estacion;
+    prevFireDetected = incendioDetectado;
+  }
+  delay(50); 
+}
