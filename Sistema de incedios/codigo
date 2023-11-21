@@ -37,7 +37,7 @@ void loop() {
 }
 
 void parpadearLuzRoja() {
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 10; i++) {
     digitalWrite(A2, HIGH);
     delay(100);
     digitalWrite(A2, LOW);
@@ -110,10 +110,10 @@ String asignarEstacion(float temperatura) {
 
 void mostrarLCD(float temperatura, String estacion, bool incendioDetectado) {
   static float prevTemp = 0;
-  static String prevSeason = "";
-  static bool prevFireDetected = false;
+  static String prevEstacion = "";
+  static bool  prevIncendioDetectado  = false;
 
-  if (prevTemp != temperatura || prevSeason != estacion || prevFireDetected != incendioDetectado) {
+  if (prevTemp != temperatura || prevEstacion != estacion ||  prevIncendioDetectado  != incendioDetectado) {
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Temp: " + String(temperatura) + " C");
@@ -126,8 +126,8 @@ void mostrarLCD(float temperatura, String estacion, bool incendioDetectado) {
     }
     
     prevTemp = temperatura;
-    prevSeason = estacion;
-    prevFireDetected = incendioDetectado;
+    prevEstacion = estacion;
+    prevIncendioDetectado  = incendioDetectado;
   }
   delay(50); 
 }
