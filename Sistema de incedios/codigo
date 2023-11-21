@@ -50,12 +50,10 @@ void loop() {
 }
 
 void activarSistemaIncendio() {
-  digitalWrite(A2, HIGH);
   SistemaIncendio = true;
 }
 
 void desactivarSistemaIncendio() {
-  digitalWrite(A2, LOW);
   servoIncendio.write(90);
   SistemaIncendio = false;
 }
