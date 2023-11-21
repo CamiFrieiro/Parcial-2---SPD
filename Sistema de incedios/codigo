@@ -29,6 +29,24 @@ void loop() {
 
   mostrarLCD(temperatura_actual, estacion, incendioDetectado);
 
+  manejarControlRemoto();
+
+  if (incendioDetectado && SistemaIncendio) {
+    sistemaDeIncendio(temperatura_actual);
+  }
+}
+
+void parpadearLuzRoja() {
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(A2, HIGH);
+    delay(100);
+    digitalWrite(A2, LOW);
+    delay(100);
+  }
+}
+
+
+void manejarControlRemoto() {
   if (IrReceiver.decode()) {
     switch (IrReceiver.decodedIRData.command) {
       case 0x10: // BOTON 1
@@ -43,10 +61,6 @@ void loop() {
     delay(65);
     IrReceiver.resume();
   }
-
-  if (incendioDetectado && SistemaIncendio) {
-    sistemaDeIncendio(temperatura_actual);
-  }
 }
 
 void activarSistemaIncendio() {
@@ -60,18 +74,13 @@ void desactivarSistemaIncendio() {
 
 void sistemaDeIncendio(float temperatura) {
   if (SistemaIncendio && temperatura > TEMPERATURA_INCENDIO) {
-    for (int i = 0; i < 5; i++) {
-      digitalWrite(A2, HIGH); 
-      delay(200);
-      digitalWrite(A2, LOW);
-      delay(200);
-    }
-    for (int angle = 0; angle <= 180; angle++) {
-      servoIncendio.write(angle);
+    parpadearLuzRoja();
+    for (int servo_movimiento = 0; servo_movimiento <= 180; servo_movimiento++) {
+      servoIncendio.write(servo_movimiento);
       delay(15);
     }
-    for (int angle = 180; angle >= 0; angle--) {
-      servoIncendio.write(angle);
+    for (int servo_movimiento = 180; servo_movimiento >= 0; servo_movimiento--) {
+      servoIncendio.write(servo_movimiento);
       delay(15);
     }
   } else {
